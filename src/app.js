@@ -1,5 +1,5 @@
 import {
-  BOSSES, UNDERBOSSES, MAIN_BOSSES, MISSIONS, MISSION_TYPES, VEHICLES, TERRAINS, WEATHERS,
+  BOSSES, UNDERBOSSES, MAIN_BOSSES, CAMPAIGN_STORY, MISSIONS, MISSION_TYPES, VEHICLES, TERRAINS, WEATHERS,
   DIFFICULTIES, ORIGINS, GENDERS, FACE_STYLES, HAIR_STYLES, HAIR_COLORS, EYE_COLORS,
   EYE_STYLES, FACIAL_HAIR, SCARS, HEADGEAR, MENU_QUOTES, CUP_ROUNDS, TOURNAMENT_ROUNDS
 } from './data.js'
@@ -1001,6 +1001,11 @@ export class App {
               <div class="progress-copy"><b>${defeated < 8 ? 'UNDERBOSS LADDER' : defeated < 11 ? 'MAIN EVENT UNLOCKED' : 'WASTELAND BOWS'}</b><span>${defeated < 8 ? `${8 - defeated} underboss${8 - defeated === 1 ? '' : 'es'} remain` : defeated < 11 ? `${11 - defeated} demigod${11 - defeated === 1 ? '' : 's'} remain` : 'Every throne is yours.'}</span></div>
             </div>
           </div>
+          <section class="campaign-story panel">
+            <div class="campaign-story-heading"><span class="kicker">THE CAMPAIGN</span><h2>${esc(CAMPAIGN_STORY.title)}</h2></div>
+            <p class="campaign-intro">${esc(CAMPAIGN_STORY.intro)}</p>
+            <div class="campaign-chapters">${CAMPAIGN_STORY.chapters.map(chapter => `<article><h3>${esc(chapter.title)}</h3><p>${esc(chapter.text)}</p></article>`).join('')}</div>
+          </section>
           <div class="ladder">
             <div class="ladder-head"><span class="kicker">TIER 01</span><h3>THE EIGHT UNDERBOSSES</h3><p>The gatekeepers. Each one guards a vehicle, a territory, and a reason to hate you.</p></div>
             <div class="boss-grid">${under}</div>
@@ -1065,6 +1070,7 @@ export class App {
           <h3>${esc(boss.title)}</h3>
           <p class="boss-quote">“${esc(boss.quote)}”</p>
           <p class="modal-lede">${esc(boss.desc)}</p>
+          <div class="boss-story"><span>ON THE CROWNROAD</span><p>${esc(boss.story || boss.desc)}</p></div>
           <div class="mission-chips">
             <span><i>${t.icon}</i>${t.name}</span><span><i>${w.icon}</i>${w.name}</span><span class="${diff.id}">${diff.name}</span><span>${boss.laps} LAPS</span>
           </div>
@@ -1134,9 +1140,15 @@ export class App {
               <canvas id="garageCanvas"></canvas>
               <div class="stage-glow" style="--c:${v.accent}"></div>
               <div class="stage-floor"></div>
+              <div class="garage-angle-controls" aria-label="Vehicle camera angles">
+                <button type="button" data-camera-angle="front" aria-label="Front three-quarter view">FRONT</button>
+                <button type="button" data-camera-angle="side" aria-label="Side view">SIDE</button>
+                <button type="button" data-camera-angle="rear" aria-label="Rear view">REAR</button>
+                <button type="button" data-camera-angle="reset" aria-label="Reset camera">RESET</button>
+              </div>
               <div class="stage-label"><b>${esc(v.name)}</b><span>${esc(v.klass)}</span></div>
             </div>
-            <div class="garage-hint">DRAG NOT REQUIRED · PREVIEW ROTATES · FULLY PROCEDURAL</div>
+            <div class="garage-hint">DRAG TO ORBIT · SCROLL TO ZOOM · PICK AN ANGLE</div>
           </div>
           <div class="garage-detail panel" id="garageDetail">${this.garageDetail(v, owned)}</div>
         </div>

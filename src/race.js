@@ -6,15 +6,28 @@ import { audio } from './audio.js'
 import { formatTime } from './storage.js'
 
 const RIVALS = [
-  { name: 'Marrow', origin: 'ghoul', vehicle: 'rust_reaper', color: '#4e4b3f', accent: '#b6a25a' },
-  { name: 'Vex', origin: 'mutant', vehicle: 'acid_runner', color: '#43552b', accent: '#b6ff37' },
-  { name: 'Sister Ash', origin: 'ghost', vehicle: 'hearse_taxi', color: '#2a3138', accent: '#9fc4d6' },
-  { name: 'Grimm', origin: 'demon', vehicle: 'midnight_coffin', color: '#251314', accent: '#ff3b30' },
-  { name: 'Halo', origin: 'demigod', vehicle: 'valkyrie', color: '#b8b2a2', accent: '#ffcf6a' },
-  { name: 'Cinder', origin: 'human', vehicle: 'dune_worm', color: '#7e4d2d', accent: '#ff8a3d' },
-  { name: 'Pale Kid', origin: 'ghost', vehicle: 'bubble_bumper', color: '#5d4a66', accent: '#b6ffcf' },
-  { name: 'Brick', origin: 'mutant', vehicle: 'wool_reaper', color: '#7b745f', accent: '#8f171b' }
+  { name: 'Marrow', origin: 'ghoul', vehicle: 'rust_reaper', color: '#4e4b3f', accent: '#b6a25a', story: 'A graveyard mechanic who learned to race by dragging engines out of the dead. Marrow keeps a tally of every rival he has buried and swears your name will be the last mark.' },
+  { name: 'Vex', origin: 'mutant', vehicle: 'acid_runner', color: '#43552b', accent: '#b6ff37', story: 'Vex grew up in the refinery runoff, where a quick turn meant the difference between a clean lung and a melted one. Every race is a test of how much poison a body can turn into speed.' },
+  { name: 'Sister Ash', origin: 'ghost', vehicle: 'hearse_taxi', color: '#2a3138', accent: '#9fc4d6', story: 'Once a funeral driver for the last towns with lights, Sister Ash now carries the names of the lost across the circuit. She races so the dead are remembered before the living forget.' },
+  { name: 'Grimm', origin: 'demon', vehicle: 'midnight_coffin', color: '#251314', accent: '#ff3b30', story: 'Grimm made a pact with the night and paid for it in daylight. He appears wherever the road runs black, collecting wagers, secrets, and the occasional soul.' },
+  { name: 'Halo', origin: 'demigod', vehicle: 'valkyrie', color: '#b8b2a2', accent: '#ffcf6a', story: 'A fallen sky-knight who abandoned the throne roads after seeing what the Queen did to the ground below. Halo still fights by a code, though the wasteland keeps trying to break it.' },
+  { name: 'Cinder', origin: 'human', vehicle: 'dune_worm', color: '#7e4d2d', accent: '#ff8a3d', story: 'Cinder was a courier between the desert settlements, threading storms with medicine strapped to the chassis. When the routes became battle lines, she kept driving—and learned to deliver a warning at full throttle.' },
+  { name: 'Pale Kid', origin: 'ghost', vehicle: 'bubble_bumper', color: '#5d4a66', accent: '#b6ffcf', story: 'No one knows where the Pale Kid came from, only that the little car appears at midnight and vanishes before dawn. The Kid treats every race as a game, and every finish as a promise to come back.' },
+  { name: 'Brick', origin: 'mutant', vehicle: 'wool_reaper', color: '#7b745f', accent: '#8f171b', story: 'Brick is the last bouncer from the old arena circuit, a wall of muscle with a soft spot for battered machines. He believes a car—and a person—deserves one more chance after the first wreck.' }
 ]
+
+const GANG_PURSUERS = [
+  { name: 'Bone Fang', story: 'The gang’s tracker, Bone Fang marks escape routes with teeth wired to the guardrails.' },
+  { name: 'Rust Maw', story: 'Rust Maw strips abandoned cars for armor and wears every stolen plate like a trophy.' },
+  { name: 'Grave Crawler', story: 'A tunnel runner who knows the old drainage maps better than the roads above.' },
+  { name: 'Dust Throat', story: 'Dust Throat rides point through the storms, calling targets by the sound of their engines.' }
+].map((driver, i) => ({ ...driver, origin: 'demon', vehicle: 'rust_reaper', color: ['#583427', '#3e3228', '#2a2722', '#4b3b2b'][i], accent: '#c35b2c', pursuit: true }))
+
+const POLICE_PURSUERS = [
+  { name: 'Unit 13', story: 'Unit 13 is a silent patrol car whose driver still follows the evacuation orders issued before the world ended.' },
+  { name: 'Unit 09', story: 'Unit 09 was rebuilt from a checkpoint interceptor and sent back onto the road with its original arrest list intact.' },
+  { name: 'Precinct 77', story: 'Precinct 77 is the last mobile command unit of a dead jurisdiction, enforcing laws no town remembers.' }
+].map((driver, i) => ({ ...driver, origin: 'ghost', vehicle: 'midnight_coffin', color: '#111820', accent: i % 2 ? '#ff3b30' : '#3f8cff', pursuit: true }))
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const lerp = (a, b, t) => a + (b - a) * t
@@ -171,17 +184,7 @@ export class RaceGame {
     const isEscape = this.mode === 'gang' || this.mode === 'police'
     let defs = []
     if (isEscape) {
-      const police = this.mode === 'police'
-      for (let i = 0; i < (police ? 3 : 4); i++) {
-        defs.push({
-          name: police ? ['Unit 13', 'Unit 09', 'Precinct 77'][i] : ['Bone Fang', 'Rust Maw', 'Grave Crawler', 'Dust Throat'][i],
-          origin: police ? 'ghost' : 'demon',
-          vehicle: police ? 'midnight_coffin' : 'rust_reaper',
-          color: police ? '#111820' : ['#583427', '#3e3228', '#2a2722', '#4b3b2b'][i],
-          accent: police ? (i % 2 ? '#ff3b30' : '#3f8cff') : '#c35b2c',
-          pursuit: true
-        })
-      }
+      defs = [...(this.mode === 'police' ? POLICE_PURSUERS : GANG_PURSUERS)]
     } else if (this.mode === 'pvp') {
       const r = RIVALS[Math.floor(Math.random() * RIVALS.length)]
       defs.push({ ...r, name: 'RIVAL · ' + r.name })

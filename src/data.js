@@ -295,15 +295,43 @@ export const VEHICLES = [
 ]
 
 // ---------------------------------------------------------------------------
-// Boss roster
+// Career story and boss roster
 // ---------------------------------------------------------------------------
+export const CAMPAIGN_STORY = {
+  title: 'The Crownroad War',
+  intro: 'When the old world burned, the racing circuits became borders and the finish line became law. Mandy-Lee crowned herself Queen of Racing, then sent her generals to seize every road worth owning. You arrive with a patched car, no allies, and one rule: the wasteland belongs to whoever can hold the wheel.',
+  chapters: [
+    {
+      title: 'I · Ashes at the Starting Line',
+      text: 'The first invitation is a wrecked car left across your path, its hood stamped with Mandy-Lee’s crown. The Queen has outlawed independent races; every road now pays her toll. You have a patched engine, a half-empty tank, and no crew. Win the first scraps of territory and the scattered settlements begin to whisper your name.'
+    },
+    {
+      title: 'II · The Generals’ Road',
+      text: 'Ichi weighs your nerve in the Black Nile mines. Chloe sends her hellhound pack across the frozen border. Jill cuts through the mountain storm like a silver blade, while Timone rolls a wall of armored fleece out of the Rotwood. Each victory opens a route and exposes the truth: the generals are not merely guarding roads. They are diverting fuel, steel, and food toward the Queen’s hidden capital.'
+    },
+    {
+      title: 'III · No Safe Shoulder',
+      text: 'The closer you get to the capital, the less the races resemble races. Domino turns the suburbs into a maze of false shortcuts. Bubbles makes the flooded coast a laughing demolition pit. Oscar waits in the blackout streets, where an engine note is the only warning. At the edge of the wasteland, Sussie burns through the Queen’s last reserve of boost fuel in a three-lap chase. Break the final underboss and the whole frontier rises behind you—but Mandy-Lee has already heard the revolt coming.'
+    },
+    {
+      title: 'IV · The Queen’s Redline',
+      text: 'Mandy-Lee meets you beneath the dead neon, crowned in black steel and surrounded by the machines she took from every defeated rival. She offers one bargain: kneel, keep your car, and live under her flag. Refuse, and the capital becomes a single brutal circuit. The Queen drives to erase the rebellion in one night. Beat her, and the crown is yours to refuse—or claim.'
+    },
+    {
+      title: 'V · The Beast and the Last Laugh',
+      text: 'The crown was never the finish. Zanrich, the Wild Demigod, tears open the volcano road to prove that strength answers to no ruler. His Beast Titan turns the climb into a moving landslide. Then Drikus, King of Insanity, summons the survivors to the jungle for a final race beneath a sky split by lightning. The route changes, the rules collapse, and every rival you spared—or inspired—rides the storm with you. Cross the last line, and decide what racing will mean in a world that has forgotten how to choose.'
+    }
+  ]
+}
+
 export const BOSSES = [
   {
     id: 'ichi', name: 'Ichi', title: 'Warden of the Black Nile', underboss: true, order: 1,
     terrain: 'mines', weather: 'storm', difficulty: 'easy', laps: 2,
     vehicle: 'anubis_chariot', portrait: { origin: 'ghoul', headgear: 'anubis', skin: '#7d745d', hair: 'bald', eyes: 'amber', eyeStyle: 'hollow', scar: 'none' },
     quote: 'Your heart weighs less than a spark plug.',
-    desc: 'Anubis-faced gatekeeper of the underworld. His chariot glows with dead gold.',
+    desc: 'General Ichi, the jackal-faced commander of the Black Nile. He weighs every challenger like the dead and sends the unworthy into the mines.',
+    story: 'Ichi was the first general to swear his wheels to Mandy-Lee. He believes the old law of the scales still rules the wasteland: only the strong deserve a road. Beat him, and his dead-gold chariot becomes your first proof that the Queen can be challenged.',
     reward: 900
   },
   {
@@ -311,7 +339,8 @@ export const BOSSES = [
     terrain: 'ice', weather: 'cloudy', difficulty: 'easy', laps: 2,
     vehicle: 'cerberus_fang', portrait: { origin: 'mutant', headgear: 'ears', skin: '#d8d3c6', hair: 'white', eyes: 'red', eyeStyle: 'cyber', scar: 'eye', fangs: true },
     quote: 'Three heads. Zero patience.',
-    desc: 'A white-furred cerberus in a collar of teeth. Her vehicle growls in three-part harmony.',
+    desc: 'General Chloe is the White Cerberus, a hound of hell who runs the Queen’s frozen border. Her three-part engine growl is the last warning before the pack hits.',
+    story: 'Chloe turned a pack of abandoned war-hounds into the Queen’s most feared patrol. She treats the frozen pass as her kennel and every trespasser as prey. Survive her hunt and the Cerberus Fang is yours.',
     reward: 1100
   },
   {
@@ -320,6 +349,7 @@ export const BOSSES = [
     vehicle: 'valkyrie', portrait: { origin: 'demigod', headgear: 'none', skin: '#d5b78f', hair: 'long', hairColor: '#d8d2c4', eyes: 'blue', eyeStyle: 'human', scar: 'none', gender: 'female' },
     quote: 'Speed is the only prayer I answer.',
     desc: 'Poised, untouchable, and gone before the thunder lands. Her silver interceptor leaves light behind.',
+    story: 'Jill rules the mountain pass from the seat of a silver interceptor, arriving only when the storm is loud enough to hide her engine. She once raced for the Queen because no one else could keep up. Show her that the road can belong to more than the fastest, and the Valkyrie will carry your revolt through the clouds.',
     reward: 1300
   },
   {
@@ -327,7 +357,8 @@ export const BOSSES = [
     terrain: 'rainforest', weather: 'acid', difficulty: 'normal', laps: 2,
     vehicle: 'wool_reaper', portrait: { origin: 'mutant', headgear: 'ears', skin: '#c8c1ae', hair: 'white', eyes: 'green', eyeStyle: 'human', scar: 'x', wool: true },
     quote: 'Baa. Baa. Bleed.',
-    desc: 'A sheep with a butcher’s eyes. The flock follows him. The flock is not alive.',
+    desc: 'Timone, the white-fluffy general, leads a woolly convoy through the Rotwood. Beneath the soft fleece is a hard-eyed tactician who never lets the flock fall out of formation.',
+    story: 'The Queen gave Timone the ruined greenbelt and a regiment of armored livestock. He made the flock into a moving wall, then made the wall feared. Scatter his formation and the Wool Reaper is yours.',
     reward: 1500
   },
   {
@@ -335,7 +366,8 @@ export const BOSSES = [
     terrain: 'suburbs', weather: 'twister', difficulty: 'normal', laps: 2,
     vehicle: 'foxfire', portrait: { origin: 'mutant', headgear: 'ears', skin: '#b66a3b', hair: 'wild', hairColor: '#8c3c1f', eyes: 'amber', eyeStyle: 'human', scar: 'cheek', muzzle: true },
     quote: 'I don’t cheat. I simply win differently.',
-    desc: 'A fox-faced trickster who cuts corners that shouldn’t exist. His car is faster than it looks.',
+    desc: 'Domino is the Wild One: a fox-faced outlaw who answers to no flag, not even the Queen’s. He cuts across rooftops, dry creek beds, and any boundary foolish enough to stay still.',
+    story: 'Domino joined Mandy-Lee’s ladder for the thrill of breaking it from within. No one can tell whether he serves the Queen or merely enjoys watching her generals lose. Beat him on his own crooked route and earn the Foxfire.',
     reward: 1700
   },
   {
@@ -344,6 +376,7 @@ export const BOSSES = [
     vehicle: 'bubble_bumper', portrait: { origin: 'ghoul', headgear: 'ears', skin: '#8e917e', hair: 'mohawk', hairColor: '#a84a72', eyes: 'violet', eyeStyle: 'cyber', scar: 'burn', muzzle: true, goof: true },
     quote: 'Wanna see something stupid and incredible?',
     desc: 'A giggling dog-shaped goof in a car that violates physics and taste. Never count him out.',
+    story: 'Bubbles was hired to make the coast patrols laugh right up until the water rose over their doors. Now he rules the flooded causeway with a grin, a rubber-horn laugh, and a bumper car that can shove a truck into the tide. Outlast the chaos and you may discover the joke was always on the Queen.',
     reward: 1900
   },
   {
@@ -352,6 +385,7 @@ export const BOSSES = [
     vehicle: 'midnight_coffin', portrait: { origin: 'ghost', headgear: 'none', skin: '#6f7880', hair: 'bald', eyes: 'white', eyeStyle: 'hollow', scar: 'none', gender: 'male', ghost: true },
     quote: 'You won’t see me. You’ll only hear the door close.',
     desc: 'A pitch-black silhouette at the wheel of a pitch-black car. His headlights are always off.',
+    story: 'Oscar keeps the blackout district quiet for Mandy-Lee. His midnight patrol takes confiscated cars to the capital and leaves their owners to walk home through the dark. He knows every unlit tunnel and every engine that should not be running. Find the coffin before it finds you, and the people of the city will get their headlights back.',
     reward: 2200
   },
   {
@@ -359,7 +393,8 @@ export const BOSSES = [
     terrain: 'wasteland', weather: 'quicksand', difficulty: 'hard', laps: 3,
     vehicle: 'boost_hog', portrait: { origin: 'human', headgear: 'none', skin: '#6c4938', hair: 'braids', hairColor: '#151316', eyes: 'amber', eyeStyle: 'human', scar: 'cheek', gender: 'female', build: 'heavy' },
     quote: 'Big girl. Bigger boost. Bye.',
-    desc: 'A mountain of a driver with a mountain of nitrous. Most rivals only ever see her taillights.',
+    desc: 'Sussie is the gluttonous speed demon of the wasteland: she devours fuel, scrap, and the distance between herself and the finish line. Her boost-heavy black rocket leaves rivals choking in the dust.',
+    story: 'Sussie began as a scavenger who ate whatever the wasteland offered. Now she consumes entire race fields for the Queen’s prize purse. Outlast her appetite for speed and the Boost Hog becomes your ride.',
     reward: 2600
   },
   {
@@ -368,6 +403,7 @@ export const BOSSES = [
     vehicle: 'night_queen', portrait: { origin: 'demigod', headgear: 'crown', skin: '#e2c7b4', hair: 'long', hairColor: '#151316', eyes: 'blue', eyeStyle: 'cyber', scar: 'none', gender: 'female' },
     quote: 'Kneel, or be the road I drive over.',
     desc: 'Black hair, shocking blue eyes, and a kingdom made of fear. The Queen of the Dark does not lose.',
+    story: 'Mandy-Lee did not inherit the wasteland; she won it one finish line at a time. She made racing law, turned champions into generals, and hoarded the fuel that could keep whole settlements alive. In the Night Queen she finally meets a challenger who has dismantled her ladder from the bottom up. This is not a title defense. It is the Queen’s last chance to make the wasteland believe there was never another choice.',
     reward: 5000
   },
   {
@@ -376,6 +412,7 @@ export const BOSSES = [
     vehicle: 'beast_titan', portrait: { origin: 'demigod', headgear: 'horns', skin: '#8c552c', hair: 'wild', hairColor: '#2b1a12', eyes: 'amber', eyeStyle: 'human', scar: 'x', fangs: true },
     quote: 'STRENGTH IS THE ONLY LANGUAGE. MINE IS LOUDER.',
     desc: 'A demigod of power and pure animal rage. His Beast Titan is a moving mountain with a hunger.',
+    story: 'The Queen’s defeat breaks her flag, not the old hunger for power. Zanrich answers the open throne with a challenge carved into the volcano road: take the summit or be buried below it. He believes mercy is weakness and every alliance temporary. The Beast Titan is built to turn the climb into a wreckage field; beat him there, and the survivors will know the new order cannot be seized by force alone.',
     reward: 7500
   },
   {
@@ -384,6 +421,7 @@ export const BOSSES = [
     vehicle: 'jester_chaos', portrait: { origin: 'demigod', headgear: 'jester', skin: '#d7cdb5', hair: 'wild', hairColor: '#3a1c56', eyes: 'green', eyeStyle: 'cyber', scar: 'eye', fangs: true, joker: true, facepaint: true },
     quote: 'HAHAHAHA—wait, were we racing? I forgot the rules. I wrote them.',
     desc: 'The final punchline. A demigod of insanity wearing a jester’s grin, driving a car that should not exist.',
+    story: 'Drikus has watched the Queen fall and the Beast lose. He calls the survivors to the jungle, where the bridges move, the beacons lie, and the course is rewritten while the engines are running. He says the wasteland is only free if nobody can control what happens next. To defeat the King of Insanity, you will need more than a faster car: every rival you turned into an ally must help hold the route together long enough to finish the race.',
     reward: 12000
   }
 ]
