@@ -20,31 +20,32 @@ function makeRoadTexture(terrain) {
   const x = c.getContext('2d')
   x.fillStyle = terrain.road
   x.fillRect(0, 0, 256, 512)
-  // asphalt grain
+  // Packed dirt, scattered stone, and broad tire-worn grooves; no lane paint.
   const r = rng(terrain.id.length * 7001 + 11)
-  for (let i = 0; i < 4500; i++) {
-    const v = 20 + Math.floor(r() * 55)
-    x.fillStyle = `rgba(${v},${v - 3},${v - 4},${0.1 + r() * 0.22})`
-    x.fillRect(r() * 256, r() * 512, 1 + r() * 3, 1 + r() * 2)
+  for (let i = 0; i < 6200; i++) {
+    const shade = r() > 0.5 ? '115,91,62' : '25,22,18'
+    x.fillStyle = `rgba(${shade},${0.08 + r() * 0.2})`
+    x.fillRect(r() * 256, r() * 512, 1 + r() * 4, 1 + r() * 3)
   }
-  // cracks
-  x.strokeStyle = 'rgba(4,4,5,0.45)'
-  for (let i = 0; i < 12; i++) {
-    x.lineWidth = 0.8 + r() * 1.8
-    let px = r() * 256, py = r() * 512
-    x.beginPath(); x.moveTo(px, py)
-    for (let j = 0; j < 5; j++) { px += (r() - 0.5) * 26; py += 10 + r() * 30; x.lineTo(px, py) }
-    x.stroke()
+  for (const groove of [72, 184]) {
+    const offset = (r() - 0.5) * 8
+    const rut = x.createLinearGradient(groove - 13, 0, groove + 13, 0)
+    rut.addColorStop(0, 'rgba(15,12,10,0)')
+    rut.addColorStop(0.5, 'rgba(15,12,10,0.34)')
+    rut.addColorStop(1, 'rgba(15,12,10,0)')
+    x.fillStyle = rut
+    x.fillRect(groove + offset - 13, 0, 26, 512)
+    x.strokeStyle = 'rgba(191,151,99,0.12)'
+    x.lineWidth = 2
+    x.beginPath(); x.moveTo(groove + offset + 10, 0); x.lineTo(groove + offset + 10, 512); x.stroke()
   }
-  // edge lines
-  x.fillStyle = 'rgba(205,188,142,0.55)'
-  x.fillRect(12, 0, 3, 512)
-  x.fillRect(241, 0, 3, 512)
-  // center dashed line
-  x.fillStyle = 'rgba(216,182,92,0.66)'
-  for (let i = 0; i < 6; i++) x.fillRect(125, i * 86 + 12, 6, 50)
-  // oil / blood stains
-  x.fillStyle = 'rgba(12,7,6,0.22)'
+  // shallow washboard and scuffed patches
+  for (let i = 0; i < 24; i++) {
+    const y = r() * 512
+    x.fillStyle = `rgba(205,164,108,${0.025 + r() * 0.05})`
+    x.fillRect(18 + r() * 36, y, 150 + r() * 75, 1 + r() * 3)
+  }
+  x.fillStyle = 'rgba(12,7,6,0.2)'
   for (let i = 0; i < 8; i++) { x.beginPath(); x.ellipse(r() * 256, r() * 512, 6 + r() * 24, 4 + r() * 13, r() * 3, 0, 7); x.fill() }
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping

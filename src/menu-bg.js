@@ -71,67 +71,78 @@ export class MenuBackdrop {
     this.blue.position.set(7, 3, -1)
     this.scene.add(this.blue)
 
-    // ground + road
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(320, 320), new THREE.MeshLambertMaterial({ color: 0x1b1817 }))
+    // Dust-baked rally stage: a broad, unmarked track with visible wheel ruts.
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(320, 320), new THREE.MeshLambertMaterial({ color: 0x51402c }))
     ground.rotation.x = -Math.PI / 2
     this.scene.add(ground)
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(16, 150), new THREE.MeshLambertMaterial({ color: 0x242221 }))
+    const dirtCanvas = document.createElement('canvas')
+    dirtCanvas.width = 256; dirtCanvas.height = 512
+    const dirtCtx = dirtCanvas.getContext('2d')
+    dirtCtx.fillStyle = '#795b3b'; dirtCtx.fillRect(0, 0, 256, 512)
+    const dirtRand = mulberry32(8217)
+    for (let i = 0; i < 2600; i++) {
+      const tone = dirtRand() > 0.5 ? '209,166,108' : '32,25,18'
+      dirtCtx.fillStyle = `rgba(${tone},${0.08 + dirtRand() * 0.22})`
+      dirtCtx.fillRect(dirtRand() * 256, dirtRand() * 512, 1 + dirtRand() * 4, 1 + dirtRand() * 3)
+    }
+    for (const x of [70, 186]) {
+      const rut = dirtCtx.createLinearGradient(x - 15, 0, x + 15, 0)
+      rut.addColorStop(0, 'rgba(24,18,13,0)'); rut.addColorStop(0.5, 'rgba(24,18,13,0.52)'); rut.addColorStop(1, 'rgba(24,18,13,0)')
+      dirtCtx.fillStyle = rut; dirtCtx.fillRect(x - 15, 0, 30, 512)
+      dirtCtx.strokeStyle = 'rgba(218,177,116,0.16)'; dirtCtx.lineWidth = 2
+      dirtCtx.beginPath(); dirtCtx.moveTo(x + 10, 0); dirtCtx.lineTo(x + 10, 512); dirtCtx.stroke()
+    }
+    const dirtTex = new THREE.CanvasTexture(dirtCanvas)
+    dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping
+    dirtTex.colorSpace = THREE.SRGBColorSpace
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(15, 180), new THREE.MeshLambertMaterial({ map: dirtTex }))
     road.rotation.x = -Math.PI / 2
-    road.position.set(4, 0.02, -55)
+    road.position.set(4, 0.025, -55)
     road.rotation.z = -0.06
     this.scene.add(road)
-    for (let i = 0; i < 16; i++) {
-      const line = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 3.5), new THREE.MeshBasicMaterial({ color: 0xb99b52 }))
-      line.rotation.x = -Math.PI / 2
-      line.rotation.z = -0.06
-      line.position.set(4 + Math.sin(-0.06) * (i * 8 - 50), 0.035, -50 + i * 8)
-      line.rotation.z = -0.06
-      this.scene.add(line)
-    }
-    // road edges
-    for (const side of [-1, 1]) {
-      const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 150), new THREE.MeshBasicMaterial({ color: 0x6d5a36 }))
-      edge.rotation.x = -Math.PI / 2
-      edge.position.set(4 + side * 8, 0.03, -55)
-      edge.rotation.z = -0.06
-      this.scene.add(edge)
-    }
 
-    // ruined skyline
+    // layered mesa silhouettes replace the ruined skyline
     const rnd = mulberry32(1337)
-    const bMat = new THREE.MeshLambertMaterial({ color: 0x100e0e })
-    const bMat2 = new THREE.MeshLambertMaterial({ color: 0x171211 })
-    for (let i = 0; i < 44; i++) {
-      const side = rnd() > 0.5 ? 1 : -1
-      const w = 4 + rnd() * 12
-      const h = 10 + rnd() * 44
-      const d = 4 + rnd() * 12
-      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rnd() > 0.5 ? bMat : bMat2)
-      b.position.set(side * (24 + rnd() * 55), h / 2, -25 - rnd() * 85)
-      b.rotation.y = rnd() * 0.5
-      this.scene.add(b)
-      // broken top
-      if (rnd() > 0.6) {
-        const top = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 3 + rnd() * 6, d * 0.6), bMat)
-        top.position.set(b.position.x + side * 2, h + 2, b.position.z)
-        top.rotation.z = (rnd() - 0.5) * 0.5
-        this.scene.add(top)
-      }
-      // windows
-      if (rnd() > 0.35) {
-        const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.55), new THREE.MeshBasicMaterial({ color: rnd() > 0.7 ? 0x9b3a1f : 0x5a4c37 }))
-        win.position.set(b.position.x - side * w * 0.51, h * 0.55, b.position.z + d * 0.51)
-        win.rotation.y = side > 0 ? -0.02 : 0.02
-        this.scene.add(win)
-      }
+    const makeRidge = (z, base, peaks, color) => {
+      const shape = new THREE.Shape()
+      shape.moveTo(-150, base)
+      for (const [x, y] of peaks) shape.lineTo(x, y)
+      shape.lineTo(150, base)
+      shape.lineTo(150, -20)
+      shape.lineTo(-150, -20)
+      shape.closePath()
+      const ridge = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color, fog: false }))
+      ridge.position.z = z
+      this.scene.add(ridge)
     }
-    // foreground rubble
+    makeRidge(-112, 0, [[-150, 7], [-126, 8], [-112, 13], [-96, 13], [-82, 8], [-52, 9], [-28, 17], [-7, 18], [8, 11], [35, 10], [58, 15], [78, 15], [94, 8], [122, 7], [140, 11], [150, 10]], 0x33231d)
+    makeRidge(-96, 0, [[-150, 5], [-126, 7], [-110, 7], [-96, 12], [-76, 12], [-61, 6], [-34, 7], [-12, 12], [8, 12], [25, 7], [48, 8], [68, 13], [87, 13], [106, 6], [132, 7], [150, 9]], 0x211a18)
+
+    // eroded shoulders, scattered rock, and sparse desert scrub
     for (let i = 0; i < 28; i++) {
       const r = 0.3 + rnd() * 1.6
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), new THREE.MeshLambertMaterial({ color: 0x2a2320, flatShading: true }))
       rock.position.set((rnd() - 0.5) * 50, r * 0.4, 4 + rnd() * 18)
       rock.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3)
       this.scene.add(rock)
+    }
+    for (let i = 0; i < 34; i++) {
+      const side = rnd() > 0.5 ? 1 : -1
+      const x = side * (11 + rnd() * 30)
+      const z = -38 + rnd() * 58
+      const size = 0.35 + rnd() * 0.9
+      const scrub = new THREE.Group()
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.09, size, 4), new THREE.MeshLambertMaterial({ color: 0x463c27, flatShading: true }))
+      stem.position.y = size * 0.45
+      scrub.add(stem)
+      for (let branch = 0; branch < 3; branch++) {
+        const twig = new THREE.Mesh(new THREE.ConeGeometry(size * 0.17, size * (0.55 + rnd() * 0.3), 4), new THREE.MeshLambertMaterial({ color: branch % 2 ? 0x4c512e : 0x596039, flatShading: true }))
+        twig.position.set((rnd() - 0.5) * size * 0.7, size * (0.45 + rnd() * 0.45), (rnd() - 0.5) * size * 0.5)
+        twig.rotation.z = (rnd() - 0.5) * 1.2
+        scrub.add(twig)
+      }
+      scrub.position.set(x, 0, z)
+      this.scene.add(scrub)
     }
 
     // moon
