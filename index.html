@@ -11,3 +11,127 @@
 <body><main class="app"><section class="game" id="game"><canvas class="scene" id="scene" aria-label="3D mutant fishing scene"></canvas><div class="grain"></div><div class="hud"><div class="top-ui"><div class="badge"><div class="brand-small">☣ MUTANT MONSTER FISHING</div><div class="stat" id="areaLabel">TOXIC BAY · FREE PLAY</div></div><div class="stats"><div class="badge stat">CATCH <b id="catchCount">0</b></div><div class="badge stat">CASH <b id="cash">120</b>¢</div><div class="badge stat">ROD <b id="rodName">JUNKER</b></div></div></div><div class="tension" id="tensionUI" style="display:none"><div class="tensionbar"><i id="tensionFill"></i></div><div class="tensionlabel" id="tensionLabel">LINE TENSION</div></div><div class="bottom-ui"><div class="readout" id="status">Tap <b>CAST</b> to toss your line.<br><span style="color:#a8b99a">Pull when it bites · keep tension green!</span></div><div class="actions" id="gameActions"><button class="btn secondary small" id="menuBtn">MENU</button><button class="btn" id="actionBtn">CAST</button></div></div></div><div class="toast" id="toast"></div><section class="screen" id="menuScreen"><div class="card menucard"><div class="drip" id="drips"></div><div class="eyebrow">A radioactive fishing adventure</div><h1 class="title menu-logo"><span class="mutant">MUTANT</span><br><span class="monster">MONSTER</span><br><span class="fishing">FISHING</span></h1><p class="subtitle">Cast into the weird. Reel in the impossible.</p><div class="menu-buttons"><button class="btn" data-mode="free">FREE PLAY</button><button class="btn pink" data-mode="story">STORY MODE</button><button class="btn secondary" data-mode="challenge">CHALLENGES</button><button class="btn secondary" data-mode="pvp">PVP DUEL</button><button class="btn secondary" id="areasBtn">FISHING AREAS</button><button class="btn secondary" id="rodsBtn">ROD SHOP</button><button class="btn secondary" id="albumBtn">FISH LOG</button></div><div class="menu-foot">50 MUTANT SPECIES · 10 BOSS WATERS · 10 UPGRADEABLE RODS<br>CAST: TAP · REEL: HOLD / RAPID-TAP · RELEASE TO REST</div></div></section><section class="screen hidden" id="modalScreen"><div class="card" id="modalCard"></div></section></section></main>
 <script>
 'use strict';
+const $ = s => document.querySelector(s);
+const canvas=$('#scene'), ctx=canvas.getContext('2d');
+const ui={menu:$('#menuScreen'),modal:$('#modalScreen'),modalCard:$('#modalCard'),status:$('#status'),action:$('#actionBtn'),toast:$('#toast'),area:$('#areaLabel'),catch:$('#catchCount'),cash:$('#cash'),rod:$('#rodName'),tension:$('#tensionUI'),fill:$('#tensionFill'),tensionLabel:$('#tensionLabel')};
+const areas=[
+ ['Toxic Bay','A neon-green shoreline crawling with glow bugs.'],['Rustwater Docks','Shipwreck pilings hide sharp-toothed scavengers.'],['Mushroom Marsh','Spore clouds drift over the bubbling bog.'],['Glassbone Reef','Prismatic coral cuts through electric-blue tides.'],['Sunken Suburb','Porch lights still flicker beneath the waves.'],['Frostbite Fjord','Frozen brine. Something huge moves below.'],['Volcano Trench','Lava vents keep the deep strangely warm.'],['Moonfall Lake','Meteor shards make the fish glow silver.'],['The Void','No sun. No bottom. No ordinary fish.'],['Zanrich Expanse','The final waters. The legend is waiting.']
+];
+const fishNames=[
+ ['Glooper','Trashfin','Sewer Guppy','Glowbelly','Bay Brute'],['Boltjaw','Tin Can Carp','Rust Pike','Dock Creeper','Harbor Hulk'],['Spore Minnow','Mushroom Muncher','Bogglider','Toadstool Trout','Marsh Maw'],['Prism Perch','Glass Goby','Shardfin','Coral Creeper','Reef Ripper'],['Porchlight Perch','Mailbox Mullet','TV-Head Bass','Suburb Squid','The Landlord'],['Frostbitten Fry','Ice Pick Pike','Snowblind Salmon','Glacier Eel','Fjordfather'],['Cinder Carp','Magma Minnow','Ashen Angler','Lava Lurker','Caldera King'],['Comet Koi','Moon Mothfish','Stardust Sturgeon','Orbit Octopus','Lunar Leviathan'],['Null Nibbler','Darkmatter Dace','Eclipse Eel','Nightmare Ray','The Unmaker'],['Zanling','Zanrich Fry','Zanrich Herald','Zanrich Prime','ZANRICH']
+];
+const rods=[['Junker',0,1],['Bottle Rocket',90,1.12],['Rebar Rod',180,1.25],['Glowstick Pro',320,1.4],['Turbo Tackle',520,1.58],['Deep Diver',780,1.78],['Wyrm Whip',1100,2],['Stormcaller',1500,2.25],['Void Harpoon',2000,2.55],['Zanrich Bane',2800,2.9]];
+let fishList=[]; areas.forEach((a,zone)=>fishNames[zone].forEach((name,j)=>fishList.push({name,zone,boss:j===4,index:zone*5+j,rarity:j===4?'BOSS':['COMMON','UNCOMMON','RARE','EPIC'][j],value:25+zone*18+j*13+(j===4?180:0),size:18+zone*4+j*9})));
+const saveKey='mutant-monster-fishing-v1';
+let save; try{save=JSON.parse(localStorage.getItem(saveKey))||{cash:120,caught:[],rods:[0],rod:0,area:0,story:0,duels:0};}catch{save={cash:120,caught:[],rods:[0],rod:0,area:0,story:0,duels:0};}
+let mode='free',phase='idle',currentFish=null,progress=0,tension=0,biteAt=0,phaseAt=0,holding=false,challengeCatches=0,duelScore=0,botScore=0,duelAt=0,modeAt=0,lastTime=0,elapsed=0,toastTimer=0;
+let W=0,H=0,dpr=1,particles=[];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function persist(){localStorage.setItem(saveKey,JSON.stringify(save));updateHUD();}
+function updateHUD(){ui.catch.textContent=save.caught.length;ui.cash.textContent=save.cash;ui.rod.textContent=rods[save.rod][0].toUpperCase();ui.area.textContent=`${areas[save.area][0].toUpperCase()} · ${mode.toUpperCase()}${mode==='story'?' · CHAPTER '+(save.story+1):''}`;}
+function toast(msg){ui.toast.textContent=msg;ui.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>ui.toast.classList.remove('show'),2100);}
+function resize(){const r=$('#game').getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+window.addEventListener('resize',resize);resize();
+function openMenu(){holding=false;ui.menu.classList.remove('hidden');ui.modal.classList.add('hidden');phase='idle';ui.tension.style.display='none';ui.action.textContent='CAST';updateHUD();}
+function startGame(which){mode=which;if(mode==='story'&&save.story<10){save.area=Math.min(9,save.story);persist();}ui.menu.classList.add('hidden');ui.modal.classList.add('hidden');phase='idle';progress=tension=0;challengeCatches=0;duelScore=botScore=0;phaseAt=elapsed;duelAt=elapsed;modeAt=elapsed;updateHUD();setStatus(`${mode==='story'?'Chapter '+(Math.min(save.story,9)+1)+': '+storyText()+'<br>':''}Cast into ${areas[save.area][0]} and see what bites.`);}
+function setStatus(text){ui.status.innerHTML=text;}
+function cast(){if(phase==='idle'){phase='waiting';phaseAt=elapsed;biteAt=elapsed+2.6+Math.random()*3.2;progress=tension=0;currentFish=null;ui.action.textContent='WAIT…';setStatus('Line is out…<br><span style="color:#a8b99a">Watch for a bite, then reel!</span>');return;} if(phase==='waiting'){toast('Let the bait sink…');return;} if(phase==='bite'){phase='reeling';phaseAt=elapsed;progress=0;tension=20;ui.tension.style.display='block';ui.action.textContent='REEL!';setStatus('A MUTANT BIT! Hold REEL and keep the line in the green.');toast('BITE! REEL NOW!');return;} if(phase==='reeling'){holding=!holding;}}
+function loseFish(reason){phase='idle';holding=false;ui.tension.style.display='none';ui.action.textContent='CAST';setStatus(`${reason}<br><span style="color:#a8b99a">Cast again when ready.</span>`);toast(reason);}
+function chooseFish(){let pool=fishList.filter(f=>f.zone===save.area);let bossChance=mode==='challenge'?0.15:0.11;if(Math.random()<bossChance)return pool[4];let candidates=pool.filter(f=>!f.boss);return candidates[Math.floor(Math.random()*candidates.length)]||pool[0];}
+function landFish(){const f=currentFish;phase='idle';holding=false;ui.tension.style.display='none';ui.action.textContent='CAST';save.caught=[...new Set([...save.caught,f.index])];save.cash+=f.value;challengeCatches++;if(mode==='pvp'){duelScore++;if(duelScore>=3){save.duels++;toast(`DUEL WON! ${duelScore} – ${botScore}`);mode='free';}else toast(`NICE CATCH! ${duelScore} – ${botScore}`);}else toast(`${f.boss?'BOSS LANDED! ':'CAUGHT! '}${f.name} +${f.value}¢`);
+ if(f.boss&&save.area<9){save.area=Math.max(save.area,Math.min(9,save.area+1));toast(`BOSS BEATEN! ${areas[save.area][0]} unlocked!`);}
+ if(mode==='story'&&challengeCatches>=3){save.story=Math.min(10,save.story+1);save.area=Math.min(9,save.story);toast(save.story>=10?'STORY COMPLETE! You saved the deep!':'CHAPTER COMPLETE! New waters await.');}
+ if(mode==='challenge'&&challengeCatches>=3){toast('CHALLENGE COMPLETE! 3 mutant catches!');mode='free';}
+ if(mode==='pvp'&&duelScore>=3){mode='free';}
+ if(mode==='pvp'&&duelScore<3){setStatus(`<b>${f.name}</b> landed! Rival score ${botScore}. Cast for the next round.`);} else setStatus(`<b>${f.name}</b> · ${f.rarity} · ${f.size} cm<br><span style="color:#a8b99a">${f.boss?'Boss defeated!':'Sold for '+f.value+'¢'} · Cast again!</span>`);
+ if(mode==='pvp'&&duelScore<3){} else if(mode==='story')setStatus(`${f.name} landed! ${Math.max(0,3-challengeCatches)} more for this chapter.<br><span style="color:#a8b99a">Cast to continue the story.</span>`);
+ persist();}
+$('#actionBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(phase==='bite'){cast();holding=true;}else if(phase==='reeling')holding=true;else cast();});
+window.addEventListener('pointerup',()=>holding=false);
+$('#actionBtn').addEventListener('contextmenu',e=>e.preventDefault());
+$('#menuBtn').addEventListener('click',openMenu);
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+ const m=b.dataset.mode;
+ if(m==='story'&&save.story>=10){toast('Story complete! Replay the final chapter.');save.story=9;persist();}
+ if(m==='challenge')toast('Challenge: land 3 fish in a row!');
+ if(m==='pvp')toast('First to 3 catches wins the duel!');
+ startGame(m);
+}));
+function showModal(title,body){ui.modalCard.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="eyebrow">Mutant Monster Fishing</div><div class="modal-title">${title}</div></div><button class="btn secondary small" data-close>BACK</button></div>${body}`;ui.modal.classList.remove('hidden');}
+ui.modal.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.hasAttribute('data-close')){ui.modal.classList.add('hidden');return;}
+ if(b.dataset.area!==undefined){const i=+b.dataset.area;if(i<=save.area){save.area=i;persist();ui.modal.classList.add('hidden');toast(`${areas[i][0]} selected`);}else toast(`Beat the ${areas[i-1][0]} boss to unlock this water!`);}
+ if(b.dataset.rod!==undefined){const i=+b.dataset.rod;if(save.rods.includes(i)){save.rod=i;persist();toast(`${rods[i][0]} equipped`);}else if(save.cash>=rods[i][1]){save.cash-=rods[i][1];save.rods.push(i);save.rod=i;persist();toast(`${rods[i][0]} purchased!`);}else toast(`Need ${rods[i][1]-save.cash}¢ more`);renderShop();}
+});
+function renderAreas(){showModal('FISHING AREAS',`<p class="storytext">Defeat each area's boss to open the next water. Your current waters are always available.</p><div class="grid">${areas.map((a,i)=>`<button class="tile ${i===save.area?'selected':''}" data-area="${i}"><h3>${i<save.area?'✅':i===save.area?'📍':'🔒'} ${a[0]}</h3><p>${a[1]}</p><div class="meta">${i<=save.area?'OPEN · BOSS: '+fishNames[i][4].toUpperCase():'LOCKED · BEAT '+fishNames[i-1][4].toUpperCase()}</div></button>`).join('')}</div>`);}
+function renderShop(){showModal('ROD SHOP',`<p class="storytext">Better rods make each pull count harder and give you more control over the monsters.</p>${rods.map((r,i)=>{const owned=save.rods.includes(i);return `<div class="rod-row"><div class="rod-icon">${['🪵','🍾','🔩','🟢','⚙️','🌊','🐉','⚡','🪝','☣️'][i]}</div><div class="rod-info"><b>${r[0]} ${save.rod===i?'· EQUIPPED':''}</b><small>Reel power ×${r[2].toFixed(2)} · ${owned?'Owned':r[1]+'¢'}</small><div class="bar"><i style="width:${Math.round(r[2]/2.9*100)}%"></i></div></div><button class="btn ${owned?'secondary':''} small" data-rod="${i}">${owned?(save.rod===i?'ON':'EQUIP'):'BUY'}</button></div>`;}).join('')}`);}
+function renderLog(){showModal('MUTANT FIELD LOG',`<p class="storytext"><b>${save.caught.length}/50</b> species discovered · ${save.caught.filter(i=>fishList[i].boss).length}/10 bosses beaten.</p><div class="grid">${fishList.map(f=>{const got=save.caught.includes(f.index);return `<div class="tile" style="cursor:default;opacity:${got?1:.64}"><h3>${got?(f.boss?'☣ ':'🐟 ')+f.name:'???'}</h3><p>${got?`${areas[f.zone][0]} · ${f.rarity} · ${f.size} cm`:`${areas[f.zone][0]} · Undiscovered`}</p><div class="meta">${got?f.value+'¢ VALUE':f.boss?'BOSS CLASS':'UNKNOWN SPECIES'}</div></div>`;}).join('')}</div>`);}
+$('#areasBtn').addEventListener('click',renderAreas);$('#rodsBtn').addEventListener('click',renderShop);$('#albumBtn').addEventListener('click',renderLog);
+function storyText(){return [`The Spill: The bay's fish are growing teeth. Find out what the lab dumped.`,`Rust Never Sleeps: A signal pulses beneath the old docks. Track its source.`,`Bloom of Doom: A mutant spore colony is swallowing the marsh.`,`Shattered Tide: Something has cracked the reef's glassy heart.`,`Home Below: Lights are on in the drowned suburb. Who is still there?`,`Cold Case: A research vessel vanished in the fjord. Reel in its black box.`,`Hot Pursuit: Follow the thermal plume down to the volcano trench.`,`Lunar Tides: A meteor shower woke an ancient presence in the lake.`,`Into the Void: The signal has a name. And it knows yours.`,`The Last Catch: Face Zanrich and decide the fate of the deep.`][Math.min(save.story,9)];}
+const palettes=[['#ffbb6e','#ff6780','#ffe47b','#37d9ad'],['#e3a15a','#b86950','#ebd17a','#3ec8b8'],['#bcb66d','#7ad48a','#e5b857','#4bceaa'],['#73e6dc','#8384e6','#ffe77c','#43dcca'],['#f5ab90','#a969a0','#ffe5a0','#55c7c1'],['#c4eaf3','#8db1d9','#f3f5cb','#65c6ca'],['#ff9550','#d44659','#ffe474','#e87847'],['#adbaff','#805fc4','#ffffa0','#66d5e0'],['#7d74b9','#403a69','#e877bd','#8c80cf'],['#f2e26f','#e85595','#a6ff7c','#6ccbf0']];
+function rounded(x,y,w,h,r,fill){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();}
+function fishArt(x,y,s,color,t,small=false){ctx.save();ctx.translate(x,y+Math.sin(t*3)*3);ctx.scale(s/65,s/65);
+ ctx.fillStyle='#18221b';ctx.beginPath();ctx.ellipse(0,0,37,22,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,-2,34,19,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=palettes[save.area][1];ctx.beginPath();ctx.moveTo(-26,-8);ctx.lineTo(-49,-24+Math.sin(t*4)*4);ctx.lineTo(-45,0);ctx.lineTo(-50,22+Math.cos(t*3)*4);ctx.lineTo(-21,11);ctx.fill();
+ ctx.fillStyle='#f8eeaf';ctx.beginPath();ctx.ellipse(18,-7,7,8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#172019';ctx.beginPath();ctx.arc(20,-7,3.2,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#15231c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(34,5,8,.35,1.3);ctx.stroke();
+ ctx.fillStyle=palettes[save.area][2];ctx.beginPath();ctx.moveTo(-5,-17);ctx.lineTo(1,-34);ctx.lineTo(10,-16);ctx.moveTo(-14,15);ctx.lineTo(-2,31);ctx.lineTo(5,14);ctx.fill();
+ for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(-19+i*11,Math.sin(i*3+t)*4,2.4,0,Math.PI*2);ctx.fillStyle=i%2?'#f8f26c':'#f77eb7';ctx.fill();}
+ if(!small){ctx.strokeStyle='#f6eea0';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-7,-3);ctx.quadraticCurveTo(0,3,7,-3);ctx.stroke();}
+ ctx.restore();}
+function drawScene(t){if(!W||!H)return;const p=palettes[save.area],horizon=H*.49;
+ const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#1b2931');sky.addColorStop(.58,p[0]);sky.addColorStop(1,p[1]);ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ // radioactive sunset
+ const sunX=W*(.73+.04*Math.sin(t*.12)),sunY=H*.25;ctx.fillStyle=p[2];ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(sunX,sunY,Math.min(W,H)*.17,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(sunX,sunY,Math.min(W,H)*.075,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ // clouds
+ for(let i=0;i<5;i++){let x=((i*W*.27+t*5)%(W+180))-80,y=H*(.11+(i%3)*.07);ctx.fillStyle='#1b332f99';ctx.beginPath();ctx.ellipse(x,y,48,11,0,0,7);ctx.ellipse(x+25,y-6,29,13,0,0,7);ctx.ellipse(x+53,y+1,36,9,0,0,7);ctx.fill();}
+ // distant toxic silhouettes
+ ctx.fillStyle='#203b35';ctx.beginPath();ctx.moveTo(0,horizon);for(let x=0;x<=W;x+=W/8)ctx.lineTo(x,horizon-H*(.07+Math.sin(x*.022+save.area)*.055));ctx.lineTo(W,horizon);ctx.fill();
+ if(save.area===4){for(let i=0;i<8;i++){let x=i*W/7;ctx.fillStyle=i%2?'#304746':'#263d3d';ctx.fillRect(x,horizon-38-(i%3)*18,W/13,70);ctx.fillStyle=p[2];for(let r=0;r<3;r++)ctx.fillRect(x+8+r*10,horizon-28-(i%3)*18,4,5);}}
+ if(save.area===5){ctx.fillStyle='#c8e9e9';ctx.beginPath();ctx.moveTo(0,horizon);ctx.lineTo(W*.16,horizon-H*.18);ctx.lineTo(W*.26,horizon);ctx.lineTo(W*.43,horizon-H*.13);ctx.lineTo(W*.58,horizon);ctx.lineTo(W*.77,horizon-H*.2);ctx.lineTo(W*.9,horizon);ctx.lineTo(W,horizon-H*.1);ctx.lineTo(W,horizon);ctx.fill();}
+ const water=ctx.createLinearGradient(0,horizon,0,H);water.addColorStop(0,p[3]);water.addColorStop(.27,'#20786d');water.addColorStop(1,'#122e3c');ctx.fillStyle=water;ctx.fillRect(0,horizon,W,H-horizon);
+ // waves
+ for(let row=0;row<12;row++){let y=horizon+16+row*H*.044;ctx.beginPath();for(let x=-15;x<W+20;x+=18){let yy=y+Math.sin(x*.035+t*1.6+row)*3;ctx.lineTo(x,yy);}ctx.strokeStyle=`rgba(190,255,194,${.22-row*.012})`;ctx.lineWidth=row%3===0?2:1;ctx.stroke();}
+ // boat
+ let bx=W*.19,by=horizon+H*.045;ctx.fillStyle='#142a28';ctx.beginPath();ctx.moveTo(bx-W*.095,by);ctx.lineTo(bx+W*.10,by);ctx.lineTo(bx+W*.065,by+H*.06);ctx.quadraticCurveTo(bx,by+H*.08,bx-W*.07,by+H*.055);ctx.closePath();ctx.fill();ctx.fillStyle='#d46552';ctx.fill();ctx.beginPath();ctx.moveTo(bx-W*.08,by);ctx.lineTo(bx+W*.08,by);ctx.lineTo(bx+W*.055,by+H*.04);ctx.lineTo(bx-W*.06,by+H*.04);ctx.fill();
+ // fisher and rod
+ ctx.fillStyle='#f3c771';ctx.beginPath();ctx.arc(bx,by-H*.045,H*.017,0,7);ctx.fill();ctx.fillStyle='#803f61';ctx.fillRect(bx-H*.016,by-H*.025,H*.035,H*.05);ctx.strokeStyle='#27261f';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(bx+W*.012,by-H*.012);ctx.lineTo(bx+W*.13,by-H*.25);ctx.stroke();
+ let bobX=W*(phase==='idle'?.64:.68),bobY=horizon+H*(.27+Math.sin(t*3)*.008);let castX=bobX,castY=bobY;
+ if(phase==='waiting'||phase==='bite'||phase==='reeling'){ctx.strokeStyle='#ecf3b2';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(bx+W*.13,by-H*.25);ctx.quadraticCurveTo(W*.47,H*.24,bobX,bobY);ctx.stroke();}
+ // bobber and ripples
+ ctx.strokeStyle='#d9f8c5aa';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(bobX,bobY+5,28+Math.sin(t*3)*5,6,0,0,7);ctx.stroke();ctx.fillStyle='#f7f0cf';ctx.beginPath();ctx.arc(bobX,bobY,6,0,7);ctx.fill();ctx.fillStyle=phase==='bite'||phase==='reeling'?'#ff536b':'#f25c67';ctx.beginPath();ctx.arc(bobX,bobY-4,5,Math.PI,0);ctx.fill();
+ if(phase==='bite'||phase==='reeling'){const fish=currentFish;let fx=bobX+W*.13,fy=bobY+H*.12+Math.sin(t*4)*8;fishArt(fx,fy,Math.max(46,Math.min(H*.16,fish.size*1.35)),fish.boss?'#f15474':p[1],t);if(fish.boss){ctx.font=`1000 ${Math.max(10,H*.022)}px Nunito`;ctx.textAlign='center';ctx.fillStyle='#fff4a8';ctx.fillText('BOSS!',fx,fy-H*.2);}}
+ // foreground reeds, bubbles and glow flecks
+ for(let i=0;i<14;i++){let x=(i*W/13+Math.sin(t+i)*8)%W,y=horizon+H*(.19+(i%4)*.11);ctx.fillStyle=i%2?'#a6ed65':'#f8e874';ctx.globalAlpha=.5+Math.sin(t*2+i)*.3;ctx.beginPath();ctx.arc(x,y,1.5+(i%3),0,7);ctx.fill();ctx.globalAlpha=1;}
+ if(save.area===6){ctx.globalAlpha=.42;ctx.fillStyle='#ffae52';ctx.beginPath();ctx.ellipse(W*.83,H*.48,W*.18,H*.025,0,0,7);ctx.fill();ctx.globalAlpha=1;}
+ // vignette
+ const vg=ctx.createRadialGradient(W/2,H/2,H*.25,W/2,H/2,H*.78);vg.addColorStop(0,'transparent');vg.addColorStop(1,'#07121180');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+function update(dt){
+ if(phase==='waiting'&&elapsed>=biteAt){currentFish=chooseFish();phase='bite';phaseAt=elapsed;ui.action.textContent='REEL!';ui.tension.style.display='none';setStatus(`SOMETHING'S ON! <b>${currentFish.boss?'BOSS CLASS — ':''}${currentFish.name.toUpperCase()}</b><br><span style="color:#a8b99a">Tap and hold REEL to bring it in!</span>`);toast('BITE! SET THE HOOK!');}
+ if(phase==='bite'&&elapsed-phaseAt>4.2)loseFish('The mutant stole your bait!');
+ if(phase==='reeling'){
+  const power=rods[save.rod][2],fight=Math.sin(elapsed*3.1+(currentFish.index||0))*9+Math.sin(elapsed*6.7)*4;
+  tension=clamp(tension+(holding?(31+fight)*dt:-26*dt),0,110);
+  const green=tension>=30&&tension<=78;
+  if(holding&&green)progress+=dt*(18+power*7)*(currentFish.boss?.78:1);
+  else if(!holding)progress=Math.max(0,progress-dt*3.5);
+  ui.fill.style.width=clamp(tension,0,100)+'%';ui.tensionLabel.textContent=tension>78?'TOO TIGHT! EASE UP':green?'GOOD TENSION · KEEP REELING':'LINE SLACK · PULL!';
+  ui.tensionLabel.style.color=tension>78?'#ff7892':green?'#d7f477':'#a7f5e7';
+  if(tension>=100){loseFish('SNAP! The line broke!');}
+  else if(progress>=100){landFish();}
+  else if(elapsed-phaseAt>16){loseFish('The monster escaped into the deep!');}
+ }
+ if(mode==='pvp'&&botScore<3&&elapsed-duelAt>8+botScore*3){botScore++;duelAt=elapsed;toast(`RIVAL LANDED ONE! YOU ${duelScore} – ${botScore}`);if(botScore>=3){mode='free';phase='idle';ui.action.textContent='CAST';setStatus(`DUEL LOST · Rival won ${botScore}–${duelScore}. Try another duel!`);toast('DUEL LOST — REMATCH?');}}
+ if(mode==='challenge'&&elapsed-modeAt>90){if(challengeCatches<3){mode='free';phase='idle';ui.action.textContent='CAST';setStatus(`CHALLENGE OVER · ${challengeCatches}/3 catches. Try again!`);toast('TIME UP!');}else phaseAt=elapsed;}
+}
+function frame(now){const dt=Math.min(.05,(now-lastTime)/1000||0);lastTime=now;elapsed+=dt;update(dt);drawScene(elapsed);requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+window.addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter')&&!e.repeat&&ui.menu.classList.contains('hidden')&&ui.modal.classList.contains('hidden')){e.preventDefault();if(phase==='bite'){cast();holding=true;}else if(phase==='reeling')holding=true;else cast();}});
+window.addEventListener('keyup',e=>{if(e.code==='Space'||e.code==='Enter')holding=false;});
+updateHUD();
+</script>
+</body>
+</html>
